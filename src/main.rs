@@ -43,26 +43,34 @@ impl FromIterator<Cell> for [Cell; 5] {
 #[derive(Copy, Clone)]
 struct Board {
     matrix: [[Cell; 5]; 5],
+    won: bool,
 }
 
 impl Board {
     fn new() -> Board {
         Board {
             matrix: [[Cell::new(0); 5]; 5],
+            won: false,
         }
     }
 
-    fn try_mark(&mut self, number: i32) {
+    fn try_mark(&mut self, number: &i32) {
+        let mut dirty = false;
         self.matrix.iter_mut().for_each(|row| {
             row.iter_mut().for_each(|cell| {
-                if cell.value == number {
-                    cell.marked = true
+                if cell.value == *number {
+                    cell.marked = true;
+                    dirty = true;
                 }
             })
         });
+
+        if dirty {
+            print_board(self);
+        }
     }
 
-    fn check_win(&self) -> Option<Board> {
+    fn check_win(&mut self) -> Option<Board> {
         let mut row_win: bool;
         let mut column_win: bool;
         for i in 0..5 {
@@ -74,9 +82,8 @@ impl Board {
                 .into_iter()
                 .fold(true, |acc, j| acc && self.matrix[j][i].marked);
 
-            if column_win {
-                return Some(*self);
-            } else if row_win {
+            if column_win || row_win {
+                self.won = true;
                 return Some(*self);
             }
         }
@@ -86,11 +93,9 @@ impl Board {
 
     fn sum_unmarked(&self) -> i32 {
         self.matrix.iter().fold(0, |acc, row| {
-            acc + row.iter().fold(0, |acc, cell| {
-                match cell.marked {
-                    true => acc,
-                    false => acc + cell.value
-                }
+            acc + row.iter().fold(0, |acc, cell| match cell.marked {
+                true => acc,
+                false => acc + cell.value,
             })
         })
     }
@@ -117,21 +122,41 @@ fn main() {
 
     let mut boards: Vec<Board> = input.map(parse_board_str).collect();
 
-    'loop_num: for num in random_numbers {
+    let mut last_win: Option<(Board, i32)> = None;
+    'loop_num: for num in &random_numbers {
         println!("Random number : {}", num);
         for board in &mut boards {
-            board.try_mark(num);
-            print_board(board);
-            match board.check_win() {
-                Some(board) => {
-                    println!("We have a winner");
-                    let sum_unmarked = board.sum_unmarked();
-                    println!("Sum of unmarked : {} | final score : {}", sum_unmarked, num * sum_unmarked);
-                    break 'loop_num;
+            if !board.won {
+                board.try_mark(num);
+                match board.check_win() {
+                    Some(board) => {
+                        println!("We have a winner");
+                        let sum_unmarked = board.sum_unmarked();
+                        println!(
+                            "Sum of unmarked : {} | final score : {}",
+                            sum_unmarked,
+                            num * sum_unmarked
+                        );
+
+                        last_win = Some((board, *num));
+                        // break 'loop_num;
+                    }
+                    None => {}
                 }
-                None => {}
             }
         }
+    }
+
+    match last_win {
+        Some((b, num)) => {
+            let last_board_sum_unmarked = b.sum_unmarked();
+            println!(
+                "Last Board\nSum of unmarked : {} | final score : {}",
+                last_board_sum_unmarked,
+                num * last_board_sum_unmarked
+            );
+        }
+        None => {}
     }
 }
 
