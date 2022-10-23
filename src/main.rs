@@ -1,188 +1,187 @@
+use std::collections::HashMap;
+
+use data::data::INPUT;
+
 mod data;
 
-use std::fmt::Display;
-
-use crate::data::data::INPUT;
-
 #[derive(Copy, Clone, Debug)]
-struct Cell {
-    value: i32,
-    marked: bool,
+struct Point {
+    x: i32,
+    y: i32,
 }
 
-impl Cell {
-    fn new(value: i32) -> Cell {
-        Cell {
-            value,
-            marked: false,
-        }
+#[derive(Debug)]
+struct Segment {
+    start: Point,
+    end: Point,
+}
+
+impl Point {
+    fn new(x: i32, y: i32) -> Point {
+        Point { x, y }
     }
 }
 
-impl Display for Cell {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mark = match self.marked {
-            true => '✅',
-            false => '⭕',
-        };
-        write!(f, "{:02}:{} ", self.value, mark)
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
     }
 }
 
-impl FromIterator<Cell> for [Cell; 5] {
-    fn from_iter<T: IntoIterator<Item = Cell>>(iter: T) -> Self {
-        let mut row = [Cell::new(0); 5];
+impl Eq for Point {}
 
-        iter.into_iter().take(5).enumerate().for_each(|(i, cell)| {
-            row[i] = cell;
-        });
-        row
+impl std::hash::Hash for Point {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.x.hash(state);
+        self.y.hash(state);
     }
 }
 
-#[derive(Copy, Clone)]
-struct Board {
-    matrix: [[Cell; 5]; 5],
-    won: bool,
-}
-
-impl Board {
-    fn new() -> Board {
-        Board {
-            matrix: [[Cell::new(0); 5]; 5],
-            won: false,
-        }
+impl Segment {
+    fn new(start: Point, end: Point) -> Segment {
+        Segment { start, end }
     }
 
-    fn try_mark(&mut self, number: &i32) {
-        let mut dirty = false;
-        self.matrix.iter_mut().for_each(|row| {
-            row.iter_mut().for_each(|cell| {
-                if cell.value == *number {
-                    cell.marked = true;
-                    dirty = true;
+    fn is_straight(&self) -> bool {
+        self.start.x == self.end.x || self.start.y == self.end.y
+    }
+}
+
+#[derive(Debug)]
+enum Direction {
+    Positive,
+    Negative
+}
+
+#[derive(Debug)]
+struct SegmentIter<'a> {
+    segment: &'a Segment,
+    x_direction: Direction,
+    y_direction: Direction,
+    current: Option<Point>,
+}
+
+impl<'a> SegmentIter<'a> {
+    fn new(segment: &Segment) -> SegmentIter {
+        SegmentIter {
+            segment,
+            x_direction: {
+                if segment.start.x < segment.end.x {
+                    Direction::Positive
+                } else {
+                    Direction::Negative
                 }
-            })
-        });
-
-        if dirty {
-            print_board(self);
+            },
+            y_direction: {
+                if segment.start.y < segment.end.y {
+                    Direction::Positive
+                } else {
+                    Direction::Negative
+                }
+            },
+            current: None,
         }
-    }
-
-    fn check_win(&mut self) -> Option<Board> {
-        let mut row_win: bool;
-        let mut column_win: bool;
-        for i in 0..5 {
-            row_win = (0..5)
-                .into_iter()
-                .fold(true, |acc, j| acc && self.matrix[i][j].marked);
-
-            column_win = (0..5)
-                .into_iter()
-                .fold(true, |acc, j| acc && self.matrix[j][i].marked);
-
-            if column_win || row_win {
-                self.won = true;
-                return Some(*self);
-            }
-        }
-
-        None
-    }
-
-    fn sum_unmarked(&self) -> i32 {
-        self.matrix.iter().fold(0, |acc, row| {
-            acc + row.iter().fold(0, |acc, cell| match cell.marked {
-                true => acc,
-                false => acc + cell.value,
-            })
-        })
     }
 }
 
-impl Display for Board {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut display = String::new();
-        for row in self.matrix {
-            for cell in row {
-                let cell_str = format!("{cell}");
-                display.push_str(&cell_str);
+impl<'a> Iterator for SegmentIter<'a> {
+    type Item = Point;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self.current {
+            None => {
+                self.current = Some(self.segment.start);
+                self.current
             }
-            display.push('\n')
+            Some(point) => {
+                if point == self.segment.end {
+                    None
+                } else if self.segment.start.x == self.segment.end.x {
+                    let next_point = Point {
+                        x: point.x,
+                        y: {
+                            match self.y_direction {
+                                Direction::Positive => point.y + 1,
+                                Direction::Negative => point.y - 1,
+                            }
+                        },
+                    };
+                    self.current = Some(next_point);
+                    self.current
+                } else if self.segment.start.y == self.segment.end.y {
+                    let next_point = Point {
+                        x: {
+                            match self.x_direction {
+                                Direction::Positive => point.x + 1,
+                                Direction::Negative => point.x - 1,
+                            }
+                        },
+                        y: point.y,
+                    };
+                    self.current = Some(next_point);
+                    self.current
+                } else {
+                    let next_point = Point {
+                        x: {
+                            match self.x_direction {
+                                Direction::Positive => point.x + 1,
+                                Direction::Negative => point.x - 1,
+                            }
+                        },
+                        y: {
+                            match self.y_direction {
+                                Direction::Positive => point.y + 1,
+                                Direction::Negative => point.y - 1,
+                            }
+                        },
+                    };
+                    self.current = Some(next_point);
+                    self.current
+                }
+            }
         }
-        write!(f, "{}", display)
     }
 }
 
 fn main() {
-    let mut input = INPUT.split("\n\n").into_iter();
-    let random_numbers: &str = input.next().unwrap();
-    let random_numbers = parse_numbers_str(random_numbers);
+    let input = INPUT.trim().split('\n').into_iter();
 
-    let mut boards: Vec<Board> = input.map(parse_board_str).collect();
+    let segments: Vec<Segment> = input.map(parse_segment).collect();
 
-    let mut last_win: Option<(Board, i32)> = None;
-    'loop_num: for num in &random_numbers {
-        println!("Random number : {}", num);
-        for board in &mut boards {
-            if !board.won {
-                board.try_mark(num);
-                match board.check_win() {
-                    Some(board) => {
-                        println!("We have a winner");
-                        let sum_unmarked = board.sum_unmarked();
-                        println!(
-                            "Sum of unmarked : {} | final score : {}",
-                            sum_unmarked,
-                            num * sum_unmarked
-                        );
+    let mut vents = HashMap::new();
 
-                        last_win = Some((board, *num));
-                        // break 'loop_num;
-                    }
-                    None => {}
-                }
-            }
-        }
-    }
+    segments
+        .iter()
+        //.filter(|&segment| segment.is_straight())
+        .for_each(|segment| {
+            SegmentIter::new(segment).for_each(|point| {
+                let count = vents.entry(point).or_insert(0);
+                *count += 1;
+            });
+        });
+    
+    let result = vents.into_values()
+    .filter(|value| *value > 1)
+    .count();
 
-    match last_win {
-        Some((b, num)) => {
-            let last_board_sum_unmarked = b.sum_unmarked();
-            println!(
-                "Last Board\nSum of unmarked : {} | final score : {}",
-                last_board_sum_unmarked,
-                num * last_board_sum_unmarked
-            );
-        }
-        None => {}
+    println!("2 lines overlaps on {} points", result);
+}
+
+fn parse_segment(segment: &str) -> Segment {
+    let mut parts = segment.split("->").into_iter();
+    let start = parse_point(parts.next().unwrap());
+    let end = parse_point(parts.next().unwrap());
+    Segment {
+        start,
+        end,
     }
 }
 
-fn parse_numbers_str(numbers: &str) -> Vec<i32> {
-    numbers.split(',').map(|n| n.parse().unwrap()).collect()
-}
+fn parse_point(point: &str) -> Point {
+    let mut parts = point.trim().split(',').into_iter();
 
-fn parse_row_str(row: &str) -> [Cell; 5] {
-    row.split_whitespace()
-        .take(5)
-        .map(|number| Cell::new(number.parse().unwrap()))
-        .collect::<[Cell; 5]>()
-}
+    let x: i32 = parts.next().unwrap().parse().unwrap();
+    let y: i32 = parts.next().unwrap().parse().unwrap();
 
-fn parse_board_str(boards: &str) -> Board {
-    boards
-        .split('\n')
-        .into_iter()
-        .map(parse_row_str)
-        .enumerate()
-        .fold(Board::new(), |mut board: Board, (index, row)| {
-            board.matrix[index] = row;
-            board
-        })
-}
-
-fn print_board(board: &Board) {
-    println!("{}", board);
+    Point { x, y }
 }
