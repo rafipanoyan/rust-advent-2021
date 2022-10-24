@@ -1,64 +1,57 @@
-use std::fmt::Debug;
+use std::collections::HashMap;
 
-use data::data::INPUT;
+use data::data::{INPUT, INPUT_DEBUG};
 
 mod data;
 
-#[derive(Clone, Copy)]
-struct Lanternfish {
-    timer: i8
-}
-
-impl Debug for Lanternfish {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.timer)
-    }
-}
-
-impl Lanternfish {
-    fn new() -> Lanternfish {
-        Lanternfish { timer: 8 }
-    }
-    
-    fn from(timer: i8) -> Lanternfish {
-        Lanternfish { timer }
-    }
-
-    fn tick(&mut self) -> Option<Lanternfish> {
-        let current_timer = self.timer;
-        let new_timer = current_timer - 1;
-
-        if new_timer < 0 {
-            self.timer = 6;
-            Some(Lanternfish::new())
-        } else {
-            self.timer = new_timer;
-            None
-        }
-    }
-}
-
 fn main() {
-    let sea = INPUT.split(',').into_iter().map(|timer| {
-        Lanternfish::from(timer.parse().unwrap())
-    }).collect::<Vec<Lanternfish>>();
+    let mut lanterfishes: HashMap<i8, i64> = HashMap::new();
 
-    let days = 18;
+    INPUT
+        .split(',')
+        .into_iter()
+        .map(|timer| timer.parse::<i8>().unwrap())
+        .for_each(|timer| {
+            let count = lanterfishes.entry(timer).or_insert(0);
+            *count += 1;
+        });
 
-    let final_fishes = pass_day(sea, days);
+    let days = 256;
 
-    println!("After {} days: {} fishes", days, final_fishes.len());
-}
+    for day in 0..days {
+        let mut diff: HashMap<i8, i64> = HashMap::new();
 
-fn pass_day(mut sea: Vec<Lanternfish>, days: i32) -> Vec<Lanternfish> {
-    if days == 0 {
-        return sea;
-    } else {
-        let mut new_fishes: Vec<Lanternfish> = sea.iter_mut().map(|fish| {
-            fish.tick()
-       }).flatten().collect();
-       new_fishes.extend(sea.iter().map(|f| { f.clone() }).collect::<Vec<Lanternfish>>());
-       println!("After {} Day : {:?}", days, new_fishes);
-       return pass_day(new_fishes, days - 1);
+        lanterfishes.iter()
+            .for_each(|(timer, count)| {
+                if *timer == 0 {
+                    let decrement_depleted_fish = diff.entry(*timer).or_insert(0);
+                    *decrement_depleted_fish -= count;
+
+                    let increment_reseted_fish = diff.entry(6).or_insert(0);
+                    *increment_reseted_fish += count;
+
+                    let increment_new_fish = diff.entry(8).or_insert(0);
+                    *increment_new_fish += count;
+                } else {
+                    let decrement_previous_timer = diff.entry(*timer).or_insert(0);
+                    *decrement_previous_timer -= count;
+
+                    let increment_new_timer = diff.entry(*timer - 1).or_insert(0);
+                    *increment_new_timer += count;
+                }
+            });
+
+        diff.iter().for_each(|(timer, count)| {
+            let fishes_count = lanterfishes.entry(*timer).or_insert(0);
+            *fishes_count += count;
+        });
+
+        println!("{:?}", lanterfishes);
     }
+
+    let final_count = lanterfishes.iter().fold(0, |acc, (key, value)| {
+        acc + value
+    });
+
+    println!("After {} days: {} fishes", days, final_count);
 }
