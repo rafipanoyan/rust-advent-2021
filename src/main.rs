@@ -1,57 +1,67 @@
-use std::collections::HashMap;
-
 use data::data::{INPUT, INPUT_DEBUG};
 
 mod data;
 
-fn main() {
-    let mut lanterfishes: HashMap<i8, i64> = HashMap::new();
+#[derive(PartialEq, Ord, Eq)]
+struct HorizontalPosition {
+    position: i128,
+    fuel: u128
+}
 
-    INPUT
+impl HorizontalPosition {
+    fn new(position: i128, fuel: u128) -> HorizontalPosition {
+        HorizontalPosition { position, fuel }
+    }
+}
+
+impl PartialOrd for HorizontalPosition {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.fuel.partial_cmp(&other.fuel)
+    }
+}
+
+fn main() {
+
+    let positions = INPUT
         .split(',')
         .into_iter()
-        .map(|timer| timer.parse::<i8>().unwrap())
-        .for_each(|timer| {
-            let count = lanterfishes.entry(timer).or_insert(0);
-            *count += 1;
+        .map(|position| position.parse::<i128>().unwrap());
+    
+    let min_pos = positions.clone().min().unwrap();
+    let max_pos = positions.clone().max().unwrap();
+
+    println!("Min: {} | Max: {}", min_pos, max_pos);
+
+    let mut possible_position: Vec<HorizontalPosition> = Vec::new();
+    for possible_pos in min_pos..(max_pos + 1) {
+
+        let fuel = positions.clone().into_iter().fold(0, |acc, p| {
+            let diff = p.abs_diff(possible_pos);
+            acc + step_cost(diff)
         });
-
-    let days = 256;
-
-    for day in 0..days {
-        let mut diff: HashMap<i8, i64> = HashMap::new();
-
-        lanterfishes.iter()
-            .for_each(|(timer, count)| {
-                if *timer == 0 {
-                    let decrement_depleted_fish = diff.entry(*timer).or_insert(0);
-                    *decrement_depleted_fish -= count;
-
-                    let increment_reseted_fish = diff.entry(6).or_insert(0);
-                    *increment_reseted_fish += count;
-
-                    let increment_new_fish = diff.entry(8).or_insert(0);
-                    *increment_new_fish += count;
-                } else {
-                    let decrement_previous_timer = diff.entry(*timer).or_insert(0);
-                    *decrement_previous_timer -= count;
-
-                    let increment_new_timer = diff.entry(*timer - 1).or_insert(0);
-                    *increment_new_timer += count;
-                }
-            });
-
-        diff.iter().for_each(|(timer, count)| {
-            let fishes_count = lanterfishes.entry(*timer).or_insert(0);
-            *fishes_count += count;
-        });
-
-        println!("{:?}", lanterfishes);
+        possible_position.push(HorizontalPosition::new(possible_pos, fuel));
     }
 
-    let final_count = lanterfishes.iter().fold(0, |acc, (key, value)| {
-        acc + value
-    });
+    // let min_fuel_pos = possible_position.iter().min().unwrap();
+    let min_fuel_pos = possible_position.iter().fold(None, |acc, pos| {
+        match acc {
+            None => Some(pos),
+            Some(current_min) => {
+                if pos.fuel < current_min.fuel {
+                    Some(pos)
+                } else {
+                    acc
+                }
+            }
+        }
+    }).unwrap();
 
-    println!("After {} days: {} fishes", days, final_count);
+    println!("Min fuel position: {}, fuel: {}", min_fuel_pos.position, min_fuel_pos.fuel);
+}
+
+fn step_cost(step: u128) -> u128 {
+    match step {
+        0 => 0,
+        _ => step + step_cost(step - 1)
+    }
 }
