@@ -1,10 +1,18 @@
+use std::fmt::Debug;
+
 use data::data::INPUT;
 
 mod data;
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 struct Lanternfish {
     timer: i8
+}
+
+impl Debug for Lanternfish {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.timer)
+    }
 }
 
 impl Lanternfish {
@@ -35,7 +43,7 @@ fn main() {
         Lanternfish::from(timer.parse().unwrap())
     }).collect::<Vec<Lanternfish>>();
 
-    let days = 2;
+    let days = 18;
 
     let final_fishes = pass_day(sea, days);
 
@@ -43,14 +51,14 @@ fn main() {
 }
 
 fn pass_day(mut sea: Vec<Lanternfish>, days: i32) -> Vec<Lanternfish> {
-    println!("Day : {}, Input : {:?}", days, sea);
-    if days < 0 {
+    if days == 0 {
         return sea;
     } else {
         let mut new_fishes: Vec<Lanternfish> = sea.iter_mut().map(|fish| {
             fish.tick()
        }).flatten().collect();
        new_fishes.extend(sea.iter().map(|f| { f.clone() }).collect::<Vec<Lanternfish>>());
+       println!("After {} Day : {:?}", days, new_fishes);
        return pass_day(new_fishes, days - 1);
     }
 }
