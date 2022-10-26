@@ -2,66 +2,44 @@ use data::data::{INPUT, INPUT_DEBUG};
 
 mod data;
 
-#[derive(PartialEq, Ord, Eq)]
-struct HorizontalPosition {
-    position: i128,
-    fuel: u128
-}
+type Signal = char;
 
-impl HorizontalPosition {
-    fn new(position: i128, fuel: u128) -> HorizontalPosition {
-        HorizontalPosition { position, fuel }
-    }
-}
-
-impl PartialOrd for HorizontalPosition {
-    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.fuel.partial_cmp(&other.fuel)
-    }
-}
+#[derive(Debug)]
+struct Entry(Vec<Vec<Signal>>, Vec<Vec<Signal>>);
 
 fn main() {
-
-    let positions = INPUT
-        .split(',')
+    let unique_signal_count_list = [
+        2, 3, 4, 7
+    ];
+    let input: Vec<Entry> = INPUT.split('\n')
         .into_iter()
-        .map(|position| position.parse::<i128>().unwrap());
-    
-    let min_pos = positions.clone().min().unwrap();
-    let max_pos = positions.clone().max().unwrap();
+        .map(parse_entry).collect();
 
-    println!("Min: {} | Max: {}", min_pos, max_pos);
-
-    let mut possible_position: Vec<HorizontalPosition> = Vec::new();
-    for possible_pos in min_pos..(max_pos + 1) {
-
-        let fuel = positions.clone().into_iter().fold(0, |acc, p| {
-            let diff = p.abs_diff(possible_pos);
-            acc + step_cost(diff)
-        });
-        possible_position.push(HorizontalPosition::new(possible_pos, fuel));
-    }
-
-    // let min_fuel_pos = possible_position.iter().min().unwrap();
-    let min_fuel_pos = possible_position.iter().fold(None, |acc, pos| {
-        match acc {
-            None => Some(pos),
-            Some(current_min) => {
-                if pos.fuel < current_min.fuel {
-                    Some(pos)
-                } else {
-                    acc
-                }
+    let res = input.iter().fold(0, |acc, entry| {
+        acc + entry.1.iter().fold(0, |acc, outputs| {
+            if unique_signal_count_list.contains(&outputs.len()) {
+                acc + 1
+            } else {
+                acc
             }
-        }
-    }).unwrap();
+        })
+    });
 
-    println!("Min fuel position: {}, fuel: {}", min_fuel_pos.position, min_fuel_pos.fuel);
+    println!("1, 4, 7 and 8 appear {} times",  res);
 }
 
-fn step_cost(step: u128) -> u128 {
-    match step {
-        0 => 0,
-        _ => step + step_cost(step - 1)
-    }
+fn parse_digits(digits_str: &str) -> Vec<Vec<Signal>> {
+    let mut digits_iter = digits_str.trim().split(' ').into_iter();
+
+    digits_iter.map(|digits| {
+        digits.chars().collect()
+    }).collect()
+}
+
+fn parse_entry(entry_str: &str) -> Entry {
+    let mut entry_iter = entry_str.split('|').into_iter();
+    let digits_str = entry_iter.next().unwrap();
+    let output_str = entry_iter.next().unwrap();
+
+    Entry(parse_digits(digits_str), parse_digits(output_str))
 }
