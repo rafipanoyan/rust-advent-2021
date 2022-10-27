@@ -1,5 +1,6 @@
 pub mod data {
-    pub const INPUT_DEBUG: &str = "be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb | fdgacbe cefdb cefbgd gcbe
+    pub const INPUT_DEBUG: &str =
+        "be cfbegad cbdgef fgaecd cgeb fdcge agebfd fecdb fabcd edb | fdgacbe cefdb cefbgd gcbe
     edbfga begcd cbg gc gcadebf fbgde acbgfd abcde gfcbed gfec | fcgedb cgb dgebacf gc
     fgaebd cg bdaec gdafb agbcfd gdcbef bgcad gfac gcb cdgabef | cg cg fdcagb cbg
     fbegcd cbd adcefb dageb afcb bc aefdc ecdab fgdeca fcdbega | efabcd cedba gadfec cb
@@ -9,7 +10,8 @@ pub mod data {
     bdfegc cbegaf gecbf dfcage bdacg ed bedf ced adcbefg gebcd | ed bcgafe cdgba cbgef
     egadfb cdbfeg cegd fecab cgb gbdefca cg fgcdab egfdb bfceg | gbdfcae bgc cg cgb
     gcafb gcf dcaebfg ecagb gf abcdeg gaef cafbge fdbac fegbdc | fgae cfgab fg bagce";
-    pub const INPUT: &str = "beacf afbd bcead cgefa ecdbga efb gbfdeac ecgfbd acbdfe fb | bf efb bgecdfa egcfa
+    pub const INPUT: &str =
+        "beacf afbd bcead cgefa ecdbga efb gbfdeac ecgfbd acbdfe fb | bf efb bgecdfa egcfa
     cbdgef cdfageb cegbd fecba edgf dcfbe dbcafg df fcd dbegca | bgcdef dgbec bfeac fdeg
     bgdcfa dgabf bfdec baefd abeg eda afcdge ea bfceadg dfegba | efbad fbdea dae fagbd
     cfdabe fcgbe gcdeb ecdfgb bdc cdgf cd cfageb bgdae daebfcg | decbaf cdfg deabg cd
