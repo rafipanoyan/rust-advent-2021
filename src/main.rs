@@ -212,11 +212,7 @@ fn find_segments_digits_by(digits: &Vec<Digit>, count: usize) -> Vec<&Digit> {
 }
 
 fn find_top(seven: &Digit, one: &Digit) -> Option<Segment> {
-    let diff = seven
-        .0
-        .symmetric_difference(&one.0)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
+    let diff = sym_diff(seven, one);
 
     Some(Segment {
         position: Position::Top,
@@ -281,11 +277,7 @@ fn find_bottom_left(
     let five = binding.first();
 
     if let Some(&digit) = five {
-        let binding = six
-            .0
-            .symmetric_difference(&digit.0)
-            .map(clone_segment)
-            .collect::<Vec<Segment>>();
+        let binding = sym_diff(six, digit);
 
         let bottom_left = binding.first();
 
@@ -330,18 +322,9 @@ fn find_three<'a>(five_segment_digits: &'a Vec<&Digit>, two: &Digit, five: &Digi
 }
 
 fn find_bottom_right(two: &Digit, three: &Digit, bottom_left: &Segment) -> Option<Segment> {
-    let diff = two
-        .0
-        .symmetric_difference(&three.0)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
+    let diff = sym_diff(two, three);
 
-    let binding = diff
-        .iter()
-        .filter(|&segment| segment.value != bottom_left.value)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
-
+    let binding = filter_segments(diff,&|&segment: &&Segment| segment.value != bottom_left.value);
     let bottom_right = binding.first().unwrap();
 
     Some(Segment {
@@ -364,11 +347,7 @@ fn find_zero<'a>(
 }
 
 fn find_center(zero: &Digit, eight: &Digit) -> Option<Segment> {
-    let diff = zero
-        .0
-        .symmetric_difference(&eight.0)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
+    let diff = sym_diff(zero, eight);
 
     let center = diff.first().unwrap();
 
@@ -379,17 +358,9 @@ fn find_center(zero: &Digit, eight: &Digit) -> Option<Segment> {
 }
 
 fn find_top_left(three: &Digit, eight: &Digit, bottom_left: &Segment) -> Option<Segment> {
-    let diff = three
-        .0
-        .symmetric_difference(&eight.0)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
+    let diff = sym_diff(three, eight);
 
-    let binding = diff
-        .iter()
-        .filter(|&segment| segment.value != bottom_left.value)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
+    let binding = filter_segments(diff, &|&segment: &&Segment| { segment.value != bottom_left.value });
 
     let top_left = binding.first().unwrap();
 
@@ -405,17 +376,11 @@ fn find_bottom(
     top: &Segment,
     bottom_left: &Segment,
 ) -> Option<Segment> {
-    let diff = four
-        .0
-        .symmetric_difference(&eight.0)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
+    let diff = sym_diff(four, eight);
 
-    let binding = diff
-        .iter()
-        .filter(|&segment| segment.value != bottom_left.value && segment.value != top.value)
-        .map(clone_segment)
-        .collect::<Vec<Segment>>();
+    let binding = filter_segments(diff, &|&segment: &&Segment| {
+        segment.value != bottom_left.value && segment.value != top.value
+    });
 
     let bottom = binding.first().unwrap();
 
@@ -425,18 +390,20 @@ fn find_bottom(
     })
 }
 
-fn print(digits: &Vec<&Digit>) {
-    for &d in digits {
-        println!("{}", d)
-    }
+fn sym_diff(first: &Digit, second: &Digit) -> Vec<Segment> {
+    first
+        .0
+        .symmetric_difference(&second.0)
+        .map(clone_segment)
+        .collect::<Vec<Segment>>()
 }
 
-fn print_seg(segments: &Vec<Segment>) {
-    print!("\n");
-    for s in segments {
-        println!("{:?}:{}", s.position, s.value)
-    }
-    println!("\n")
+fn filter_segments(source: Vec<Segment>, filter: &dyn Fn(&&Segment) -> bool) -> Vec<Segment> {
+    source
+        .iter()
+        .filter(filter)
+        .map(clone_segment)
+        .collect::<Vec<Segment>>()
 }
 
 fn find_segments(entry: &Entry) -> Vec<Segment> {
